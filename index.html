@@ -75,14 +75,39 @@
   details summary { cursor: pointer; font-weight: 600; }
   .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .nobt { border-left: 4px solid var(--bad); }
+  .help-btn { width: 30px; height: 30px; padding: 0; margin-left: 10px; border-radius: 50%; font-weight: 700; }
+  .guide-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; z-index: 10; padding: 16px; }
+  .guide { background: var(--card); color: var(--text); border-radius: 18px; padding: 18px; max-width: 520px; width: 100%; max-height: 88vh; overflow-y: auto; }
+  .guide h3 { margin: 0 0 10px; font-size: 19px; }
+  .guide ol { padding-left: 20px; margin: 0; }
+  .guide li { margin: 0 0 10px; font-size: 15px; }
+  @media (min-width: 600px) { .guide-back { align-items: center; } }
 </style>
 </head>
 <body>
 <main>
   <header>
     <h1>Flash<span>Strike</span></h1>
-    <div class="status-line"><span id="connDot" class="dot"></span><span id="connText">Nicht verbunden</span></div>
+    <div class="status-line"><span id="connDot" class="dot"></span><span id="connText">Nicht verbunden</span><button id="btnHelp" class="help-btn" aria-label="Anleitung">?</button></div>
   </header>
+
+  <!-- Kurzanleitung: erscheint nur beim ersten Öffnen, danach über "?" -->
+  <div id="guide" class="guide-back hidden" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="guide">
+      <h3 id="guideTitle">So funktioniert FlashStrike</h3>
+      <ol>
+        <li><b>Platine einschalten.</b> Zündung an. Die Status-LED blitzt alle 2 Sekunden kurz auf, dann ist die Platine bereit.</li>
+        <li><b>Verbinden.</b> PIN eingeben (ab Werk <b>1234</b>), auf „Verbinden“ tippen und in der Liste <b>FlashStrike</b> auswählen. Die LED leuchtet dann dauerhaft.</li>
+        <li><b>Bedienen.</b> Oben siehst du, ob die Bar leuchtet, den Strom und die Temperatur. Mit <b>Aus / Dauer / Flash</b> schaltest du die Bar direkt vom Handy.</li>
+        <li><b>Blitzlicht einstellen.</b> Muster und Geschwindigkeit wählen. Änderungen gelten sofort und bleiben gespeichert.</li>
+        <li><b>Fernlichtschalter einrichten.</b> Unter „Trigger-Eingänge“ einstellen, ob dein Kabel <b>Plus</b> oder <b>Masse</b> schaltet. Fernlicht einschalten: Plus zeigt ca. 1,4 V, Masse ca. 0 V.</li>
+        <li><b>Im Auto.</b> Fernlichthebel <b>1× ziehen</b> = Dauerlicht, <b>2× schnell ziehen</b> = Blitzlicht. Loslassen = aus. Das Handy brauchst du dafür nicht.</li>
+        <li><b>PIN ändern.</b> Unter „Schutz &amp; Einstellungen“. PIN vergessen? BOOT-Taster auf der Platine 5 Sekunden halten, dann gilt wieder 1234.</li>
+      </ol>
+      <p class="hint">iPhone: Diese Seite funktioniert nur in der App <b>Bluefy</b>, nicht in Safari. Tipp: als Lesezeichen speichern.</p>
+      <button id="btnGuideOk" class="primary" style="width:100%;margin-top:14px">Verstanden</button>
+    </div>
+  </div>
 
   <div id="noBt" class="card nobt hidden">
     <b>Bluetooth im Browser nicht verfügbar.</b>
@@ -362,6 +387,13 @@ document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
 });
 ['freq', 'duty', 'tap', 'maxA', 'maxT'].forEach(id => $(id).addEventListener('input', () => { renderLabels(); scheduleWrite(false); }));
 ['pattern', 'pol0', 'pol1', 'func0', 'func1'].forEach(id => $(id).addEventListener('change', () => { renderLabels(); scheduleWrite(true); }));
+
+// ---------- Kurzanleitung ----------
+function showGuide(show) { $('guide').classList.toggle('hidden', !show); }
+$('btnHelp').onclick = () => showGuide(true);
+$('btnGuideOk').onclick = () => { ls('fs_guide_seen', '1'); showGuide(false); };
+$('guide').addEventListener('click', e => { if (e.target.id === 'guide') { ls('fs_guide_seen', '1'); showGuide(false); } });
+if (!ls('fs_guide_seen')) showGuide(true);
 
 renderLabels();
 </script>
