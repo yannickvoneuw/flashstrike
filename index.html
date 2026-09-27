@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>FlashStrike</title>
+<style>
+  :root {
+    --bg: #f3f4f6; --card: #ffffff; --text: #16181d; --muted: #6b7280;
+    --line: #e5e7eb; --accent: #f59e0b; --accent-text: #1a1204;
+    --ok: #16a34a; --bad: #dc2626; --chip: #eef0f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1115; --card: #181b21; --text: #eceef2; --muted: #9098a5;
+      --line: #2a2f38; --accent: #fbbf24; --accent-text: #1a1204;
+      --ok: #22c55e; --bad: #f87171; --chip: #222731;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1115; --card: #181b21; --text: #eceef2; --muted: #9098a5;
+    --line: #2a2f38; --accent: #fbbf24; --accent-text: #1a1204;
+    --ok: #22c55e; --bad: #f87171; --chip: #222731;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: max(16px, env(safe-area-inset-top)) 16px 40px;
+  }
+  main { max-width: 520px; margin: 0 auto; }
+  header { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 16px; }
+  h1 { font-size: 22px; margin: 0; letter-spacing: .2px; }
+  h1 span { color: var(--accent); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  button {
+    font: inherit; border: 0; border-radius: 12px; padding: 12px 16px; cursor: pointer;
+    background: var(--chip); color: var(--text);
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 6px; }
+  .dot.on { background: var(--ok); }
+  .status-line { font-size: 14px; color: var(--muted); display: flex; align-items: center; }
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .seg button { padding: 14px 6px; font-weight: 600; }
+  .seg button.sel { background: var(--accent); color: var(--accent-text); }
+  .big-state { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .lamp { width: 54px; height: 54px; border-radius: 50%; background: var(--chip); border: 2px solid var(--line); flex: none; transition: background .08s; }
+  .lamp.on { background: var(--accent); box-shadow: 0 0 22px var(--accent); border-color: var(--accent); }
+  .big-state b { font-size: 20px; display: block; }
+  .big-state small { color: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat { background: var(--chip); border-radius: 12px; padding: 10px 12px; }
+  .stat small { color: var(--muted); font-size: 12px; display: block; }
+  .stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; }
+  .row label { flex: 1; }
+  .row output { font-variant-numeric: tabular-nums; min-width: 64px; text-align: right; font-weight: 600; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  select, input[type=text], input[type=password] {
+    font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--chip); color: var(--text); max-width: 100%;
+  }
+  .fault { display: none; background: color-mix(in srgb, var(--bad) 15%, transparent); color: var(--bad); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-weight: 600; }
+  .fault.show { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .field select { width: 100%; }
+  .hidden { display: none !important; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .nobt { border-left: 4px solid var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Flash<span>Strike</span></h1>
+    <div class="status-line"><span id="connDot" class="dot"></span><span id="connText">Nicht verbunden</span></div>
+  </header>
+
+  <div id="noBt" class="card nobt hidden">
+    <b>Bluetooth im Browser nicht verfügbar.</b>
+    <p class="hint">Android: diese Seite in <b>Chrome</b> öffnen.<br>iPhone: die kostenlose App <b>„Bluefy – Web BLE Browser“</b> aus dem App Store laden und die Seite darin öffnen. Safari kann kein Bluetooth.</p>
+  </div>
+
+  <!-- Verbinden -->
+  <section id="connectCard" class="card">
+    <h2>Verbinden</h2>
+    <div class="row">
+      <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN (Standard 1234)" style="flex:1">
+      <button id="btnConnect" class="primary">Verbinden</button>
+    </div>
+    <p class="hint">Die PIN wird nur auf diesem Handy gespeichert. PIN vergessen: BOOT-Taster auf der Platine 5 Sekunden halten, dann gilt wieder 1234.</p>
+  </section>
+
+  <div id="faultBox" class="fault"><span id="faultText"></span><button id="btnAck">Quittieren</button></div>
+
+  <div id="ui" class="hidden">
+    <!-- Live-Status -->
+    <section class="card">
+      <div class="big-state">
+        <div id="lamp" class="lamp"></div>
+        <div><b id="stateText">Aus</b><small id="srcText">–</small></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><small>Strom</small><b id="valA">– A</b></div>
+        <div class="stat"><small>Platinentemperatur</small><b id="valT">– °C</b></div>
+        <div class="stat"><small>Trigger 1</small><b id="valT1">–</b></div>
+        <div class="stat"><small>Trigger 2</small><b id="valT2">–</b></div>
+      </div>
+      <p id="authWarn" class="hint hidden" style="color:var(--bad)">PIN falsch – nur Anzeige, keine Änderungen möglich.</p>
+    </section>
+
+    <!-- Modus -->
+    <section class="card">
+      <h2>Modus per Handy</h2>
+      <div class="seg" id="modeSeg">
+        <button data-v="0">Aus</button>
+        <button data-v="1">Dauer</button>
+        <button data-v="2">Flash</button>
+      </div>
+      <p class="hint">Funktioniert zusätzlich zum Fernlichtschalter. Nach dem Einschalten der Zündung steht der Modus immer auf „Aus“.</p>
+    </section>
+
+    <!-- Blitz -->
+    <section class="card">
+      <h2>Blitzlicht</h2>
+      <div class="field"><small>Muster</small>
+        <select id="pattern">
+          <option value="0">Gleichmäßig</option>
+          <option value="1">Doppelblitz</option>
+          <option value="2">Dreifachblitz</option>
+        </select>
+      </div>
+      <div class="row"><label for="freq">Geschwindigkeit</label><output id="freqOut"></output></div>
+      <input id="freq" type="range" min="5" max="150" step="1">
+      <div id="dutyRow">
+        <div class="row"><label for="duty">Leuchtdauer pro Blitz</label><output id="dutyOut"></output></div>
+        <input id="duty" type="range" min="10" max="90" step="5">
+      </div>
+    </section>
+
+    <!-- Trigger -->
+    <section class="card">
+      <h2>Trigger-Eingänge</h2>
+      <div class="grid2">
+        <div class="field"><small>Trigger 1 schaltet</small>
+          <select id="pol0"><option value="0">nicht benutzt</option><option value="1">Plus (+12 V)</option><option value="2">Masse</option></select>
+        </div>
+        <div class="field"><small>Trigger 1 Funktion</small>
+          <select id="func0"><option value="0">1× Dauer · 2× Flash</option><option value="1">Immer Dauer</option><option value="2">Immer Flash</option></select>
+        </div>
+        <div class="field"><small>Trigger 2 schaltet</small>
+          <select id="pol1"><option value="0">nicht benutzt</option><option value="1">Plus (+12 V)</option><option value="2">Masse</option></select>
+        </div>
+        <div class="field"><small>Trigger 2 Funktion</small>
+          <select id="func1"><option value="0">1× Dauer · 2× Flash</option><option value="1">Immer Dauer</option><option value="2">Immer Flash</option></select>
+        </div>
+      </div>
+      <div class="row"><label for="tap">Zeitfenster für 2× ziehen</label><output id="tapOut"></output></div>
+      <input id="tap" type="range" min="20" max="100" step="5">
+      <p class="hint">Fernlicht-Kabel sind meist <b>plusschaltend</b>. Die Anzeige oben zeigt die gemessene Spannung am Eingang, damit kannst du es prüfen.</p>
+    </section>
+
+    <!-- Schutz -->
+    <section class="card">
+      <details>
+        <summary>Schutz &amp; Einstellungen</summary>
+        <div class="row"><label for="maxA">Abschalten ab Strom</label><output id="maxAOut"></output></div>
+        <input id="maxA" type="range" min="5" max="40" step="1">
+        <div class="row"><label for="maxT">Abschalten ab Temperatur</label><output id="maxTOut"></output></div>
+        <input id="maxT" type="range" min="60" max="120" step="5">
+        <div class="row" style="margin-top:18px">
+          <input id="newPin" type="text" inputmode="numeric" maxlength="4" placeholder="Neue PIN (4 Ziffern)" style="flex:1">
+          <button id="btnPin">PIN ändern</button>
+        </div>
+        <div class="btnrow">
+          <button id="btnFactory">Werkseinstellungen</button>
+          <button id="btnDisconnect">Trennen</button>
+        </div>
+        <p class="hint" id="fwText"></p>
+      </details>
+    </section>
+  </div>
+</main>
+
+<script>
+const UUID = {
+  service: '8f3a1000-2c4d-4e5f-9a6b-7c8d9e0f1a2b',
+  cfg:     '8f3a1001-2c4d-4e5f-9a6b-7c8d9e0f1a2b',
+  stat:    '8f3a1002-2c4d-4e5f-9a6b-7c8d9e0f1a2b',
+  cmd:     '8f3a1003-2c4d-4e5f-9a6b-7c8d9e0f1a2b',
+  auth:    '8f3a1004-2c4d-4e5f-9a6b-7c8d9e0f1a2b',
+};
+const FAULTS = {
+  1: 'Überstrom – Ausgang abgeschaltet',
+  2: 'Übertemperatur – wartet auf Abkühlung',
+  3: 'Schutzabschaltung im Leistungschip (Kurzschluss/Überlast?)',
+  4: 'Mehrfacher Fehler – gesperrt bis „Aus“ oder Quittieren',
+};
+const SOURCES = ['–', 'Handy', 'Trigger 1', 'Trigger 2'];
+const $ = id => document.getElementById(id);
+
+let device, chCfg, chStat, chCmd, chAuth;
+let cfg = null;          // aktueller Stand von der Platine
+let writeTimer = null;
+let queue = Promise.resolve();   // BLE-Operationen nacheinander ausführen
+
+function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+if (!navigator.bluetooth) { $('noBt').classList.remove('hidden'); $('btnConnect').disabled = true; }
+$('pin').value = ls('fs_pin') || '';
+
+function enqueue(fn) { queue = queue.then(fn).catch(e => console.warn(e)); return queue; }
+
+// ---------- Konfiguration (12 Byte) ----------
+function parseCfg(dv) {
+  return {
+    appMode: dv.getUint8(0), pattern: dv.getUint8(1), freq10: dv.getUint16(2, true),
+    duty: dv.getUint8(4), pol: [dv.getUint8(5), dv.getUint8(6)], func: [dv.getUint8(7), dv.getUint8(8)],
+    tapWin10: dv.getUint8(9), maxA: dv.getUint8(10), maxT: dv.getUint8(11),
+  };
+}
+function cfgBytes(c) {
+  const b = new Uint8Array(12), dv = new DataView(b.buffer);
+  dv.setUint8(0, c.appMode); dv.setUint8(1, c.pattern); dv.setUint16(2, c.freq10, true);
+  dv.setUint8(4, c.duty); dv.setUint8(5, c.pol[0]); dv.setUint8(6, c.pol[1]);
+  dv.setUint8(7, c.func[0]); dv.setUint8(8, c.func[1]);
+  dv.setUint8(9, c.tapWin10); dv.setUint8(10, c.maxA); dv.setUint8(11, c.maxT);
+  return b;
+}
+
+function renderCfg() {
+  if (!cfg) return;
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('sel', +b.dataset.v === cfg.appMode));
+  $('pattern').value = cfg.pattern;
+  $('freq').value = cfg.freq10; $('duty').value = cfg.duty; $('tap').value = cfg.tapWin10;
+  $('maxA').value = cfg.maxA; $('maxT').value = cfg.maxT;
+  for (const i of [0, 1]) { $('pol' + i).value = cfg.pol[i]; $('func' + i).value = cfg.func[i]; }
+  renderLabels();
+}
+function renderLabels() {
+  const hz = $('freq').value / 10;
+  $('freqOut').textContent = hz.toFixed(1).replace('.', ',') + ' Hz';
+  $('dutyOut').textContent = $('duty').value + ' %';
+  $('tapOut').textContent = ($('tap').value * 10) + ' ms';
+  $('maxAOut').textContent = $('maxA').value + ' A';
+  $('maxTOut').textContent = $('maxT').value + ' °C';
+  $('dutyRow').classList.toggle('hidden', $('pattern').value !== '0');
+}
+
+function collectCfg() {
+  return {
+    appMode: cfg.appMode, pattern: +$('pattern').value, freq10: +$('freq').value, duty: +$('duty').value,
+    pol: [+$('pol0').value, +$('pol1').value], func: [+$('func0').value, +$('func1').value],
+    tapWin10: +$('tap').value, maxA: +$('maxA').value, maxT: +$('maxT').value,
+  };
+}
+
+// Änderungen gesammelt senden (Schieberegler erzeugen viele Ereignisse)
+function scheduleWrite(immediate) {
+  if (!cfg || !chCfg) return;
+  Object.assign(cfg, collectCfg());
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => enqueue(async () => {
+    await chCfg.writeValue(cfgBytes(cfg));
+    cfg = parseCfg(await chCfg.readValue());
+    renderCfg();
+  }), immediate ? 0 : 250);
+}
+
+// ---------- Status (12 Byte) ----------
+function onStatus(ev) {
+  const dv = ev.target.value;
+  const flags = dv.getUint8(0), src = dv.getUint8(1);
+  const amps = dv.getUint16(2, true) / 100, temp = dv.getInt16(4, true) / 10;
+  const t1 = dv.getUint16(6, true), t2 = dv.getUint16(8, true);
+  const fault = dv.getUint8(10), fw = dv.getUint8(11);
+  const on = flags & 1, flashing = flags & 2, authed = flags & 16, ntcErr = flags & 32;
+
+  $('lamp').classList.toggle('on', !!on);
+  $('stateText').textContent = src === 0 ? 'Aus' : (flashing ? 'Blitzlicht' : 'Dauerlicht');
+  $('srcText').textContent = src ? 'ausgelöst durch ' + SOURCES[src] : 'bereit';
+  $('valA').textContent = amps.toFixed(1).replace('.', ',') + ' A';
+  $('valT').textContent = ntcErr ? 'Sensorfehler' : temp.toFixed(0) + ' °C';
+  $('valT1').textContent = (t1 / 1000).toFixed(2).replace('.', ',') + ' V' + (flags & 4 ? ' · aktiv' : '');
+  $('valT2').textContent = (t2 / 1000).toFixed(2).replace('.', ',') + ' V' + (flags & 8 ? ' · aktiv' : '');
+  $('authWarn').classList.toggle('hidden', !!authed);
+  $('faultBox').classList.toggle('show', fault > 0);
+  $('faultText').textContent = FAULTS[fault] || ('Fehler ' + fault);
+  $('fwText').textContent = 'Firmware-Version ' + fw;
+}
+
+// ---------- Verbinden ----------
+function setConn(state, text) {
+  $('connDot').classList.toggle('on', state);
+  $('connText').textContent = text;
+  $('ui').classList.toggle('hidden', !state);
+  $('connectCard').classList.toggle('hidden', state);
+  if (!state) $('faultBox').classList.remove('show');
+}
+
+async function connect() {
+  const pin = $('pin').value.trim();
+  if (!/^\d{4}$/.test(pin)) { alert('Bitte eine 4-stellige PIN eingeben.'); return; }
+  ls('fs_pin', pin);
+  try {
+    $('btnConnect').disabled = true;
+    setConn(false, 'Suche …');
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [UUID.service] }, { namePrefix: 'FlashStrike' }],
+      optionalServices: [UUID.service],
+    });
+    device.addEventListener('gattserverdisconnected', () => setConn(false, 'Getrennt'));
+    setConn(false, 'Verbinde …');
+    const server = await device.gatt.connect();
+    const svc = await server.getPrimaryService(UUID.service);
+    [chCfg, chStat, chCmd, chAuth] = await Promise.all(
+      [UUID.cfg, UUID.stat, UUID.cmd, UUID.auth].map(u => svc.getCharacteristic(u)));
+    await chAuth.writeValue(new TextEncoder().encode(pin));
+    cfg = parseCfg(await chCfg.readValue());
+    renderCfg();
+    chStat.addEventListener('characteristicvaluechanged', onStatus);
+    await chStat.startNotifications();
+    setConn(true, 'Verbunden');
+  } catch (e) {
+    console.warn(e);
+    setConn(false, e.name === 'NotFoundError' ? 'Nicht verbunden' : 'Fehler: ' + e.message);
+  } finally {
+    $('btnConnect').disabled = !navigator.bluetooth;
+  }
+}
+
+function sendCmd(bytes) { if (chCmd) enqueue(() => chCmd.writeValue(new Uint8Array(bytes))); }
+
+// ---------- Bedienelemente ----------
+$('btnConnect').onclick = connect;
+$('btnDisconnect').onclick = () => device && device.gatt.connected && device.gatt.disconnect();
+$('btnAck').onclick = () => sendCmd([1]);
+$('btnFactory').onclick = () => {
+  if (confirm('Alle Einstellungen auf Werkseinstellung zurücksetzen? (PIN bleibt)'))
+    enqueue(async () => { await chCmd.writeValue(new Uint8Array([3])); cfg = parseCfg(await chCfg.readValue()); renderCfg(); });
+};
+$('btnPin').onclick = () => {
+  const p = $('newPin').value.trim();
+  if (!/^\d{4}$/.test(p)) { alert('Die PIN muss aus 4 Ziffern bestehen.'); return; }
+  sendCmd([2, ...new TextEncoder().encode(p)]);
+  ls('fs_pin', p); $('pin').value = p; $('newPin').value = '';
+  alert('PIN geändert.');
+};
+document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
+  if (!cfg) return;
+  cfg.appMode = +b.dataset.v;
+  renderCfg();
+  scheduleWrite(true);
+});
+['freq', 'duty', 'tap', 'maxA', 'maxT'].forEach(id => $(id).addEventListener('input', () => { renderLabels(); scheduleWrite(false); }));
+['pattern', 'pol0', 'pol1', 'func0', 'func1'].forEach(id => $(id).addEventListener('change', () => { renderLabels(); scheduleWrite(true); }));
+
+renderLabels();
+</script>
+</body>
+</html>
