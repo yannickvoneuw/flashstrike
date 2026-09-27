@@ -76,6 +76,7 @@
   .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .nobt { border-left: 4px solid var(--bad); }
   .help-btn { width: 30px; height: 30px; padding: 0; margin-left: 10px; border-radius: 50%; font-weight: 700; }
+  .pdf-btn { width: auto; padding: 0 9px; border-radius: 15px; font-size: 12px; display: inline-flex; align-items: center; background: var(--chip); color: var(--text); text-decoration: none; }
   .guide-back { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; z-index: 10; padding: 16px; }
   .guide { background: var(--card); color: var(--text); border-radius: 18px; padding: 18px; max-width: 520px; width: 100%; max-height: 88vh; overflow-y: auto; }
   .guide h3 { margin: 0 0 10px; font-size: 19px; }
@@ -88,7 +89,7 @@
 <main>
   <header>
     <h1>Flash<span>Strike</span></h1>
-    <div class="status-line"><span id="connDot" class="dot"></span><span id="connText">Nicht verbunden</span><button id="btnHelp" class="help-btn" aria-label="Anleitung">?</button></div>
+    <div class="status-line"><span id="connDot" class="dot"></span><span id="connText">Nicht verbunden</span><a class="help-btn pdf-btn" href="FlashStrike-Einbauanleitung.pdf" target="_blank" rel="noopener" aria-label="Einbauanleitung als PDF">PDF</a><button id="btnHelp" class="help-btn" aria-label="Anleitung">?</button></div>
   </header>
 
   <!-- Kurzanleitung: erscheint nur beim ersten Öffnen, danach über "?" -->
@@ -96,15 +97,16 @@
     <div class="guide">
       <h3 id="guideTitle">So funktioniert FlashStrike</h3>
       <ol>
-        <li><b>Platine einschalten.</b> Zündung an. Die Status-LED blitzt alle 2 Sekunden kurz auf, dann ist die Platine bereit.</li>
+        <li><b>FlashStrike einschalten.</b> Zündung an. Die Status-LED am FlashStrike blitzt alle 2 Sekunden kurz auf, dann ist FlashStrike bereit.</li>
         <li><b>Verbinden.</b> PIN eingeben (ab Werk <b>1234</b>), auf „Verbinden“ tippen und in der Liste <b>FlashStrike</b> auswählen. Die LED leuchtet dann dauerhaft.</li>
         <li><b>Bedienen.</b> Oben siehst du, ob die Bar leuchtet, den Strom und die Temperatur. Mit <b>Aus / Dauer / Flash</b> schaltest du die Bar direkt vom Handy.</li>
         <li><b>Blitzlicht einstellen.</b> Muster und Geschwindigkeit wählen. Änderungen gelten sofort und bleiben gespeichert.</li>
         <li><b>Fernlichtschalter einrichten.</b> Unter „Trigger-Eingänge“ einstellen, ob dein Kabel <b>Plus</b> oder <b>Masse</b> schaltet. Fernlicht einschalten: Plus zeigt ca. 1,4 V, Masse ca. 0 V.</li>
         <li><b>Im Auto.</b> Fernlichthebel <b>1× ziehen</b> = Dauerlicht, <b>2× schnell ziehen</b> = Blitzlicht. Loslassen = aus. Das Handy brauchst du dafür nicht.</li>
-        <li><b>PIN ändern.</b> Unter „Schutz &amp; Einstellungen“. PIN vergessen? BOOT-Taster auf der Platine 5 Sekunden halten, dann gilt wieder 1234.</li>
+        <li><b>PIN ändern.</b> Unter „Schutz &amp; Einstellungen“. PIN vergessen? BOOT-Taster am FlashStrike 5 Sekunden halten, dann gilt wieder 1234.</li>
       </ol>
       <p class="hint">iPhone: Diese Seite funktioniert nur in der App <b>Bluefy</b>, nicht in Safari. Tipp: als Lesezeichen speichern.</p>
+      <p class="hint">Verkabelung, Einstellungen und Fehlersuche: <a href="FlashStrike-Einbauanleitung.pdf" target="_blank" rel="noopener" style="color:var(--accent)"><b>Einbauanleitung (PDF)</b></a></p>
       <button id="btnGuideOk" class="primary" style="width:100%;margin-top:14px">Verstanden</button>
     </div>
   </div>
@@ -121,7 +123,7 @@
       <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN (Standard 1234)" style="flex:1">
       <button id="btnConnect" class="primary">Verbinden</button>
     </div>
-    <p class="hint">Die PIN wird nur auf diesem Handy gespeichert. PIN vergessen: BOOT-Taster auf der Platine 5 Sekunden halten, dann gilt wieder 1234.</p>
+    <p class="hint">Dieses Handy merkt sich die PIN. PIN vergessen: BOOT-Taster am FlashStrike 5 Sekunden halten, dann gilt wieder 1234.</p>
   </section>
 
   <div id="faultBox" class="fault"><span id="faultText"></span><button id="btnAck">Quittieren</button></div>
@@ -135,7 +137,7 @@
       </div>
       <div class="stats">
         <div class="stat"><small>Strom</small><b id="valA">– A</b></div>
-        <div class="stat"><small>Platinentemperatur</small><b id="valT">– °C</b></div>
+        <div class="stat"><small>Temperatur FlashStrike</small><b id="valT">– °C</b></div>
         <div class="stat"><small>Trigger 1</small><b id="valT1">–</b></div>
         <div class="stat"><small>Trigger 2</small><b id="valT2">–</b></div>
       </div>
@@ -233,7 +235,7 @@ const SOURCES = ['–', 'Handy', 'Trigger 1', 'Trigger 2'];
 const $ = id => document.getElementById(id);
 
 let device, chCfg, chStat, chCmd, chAuth;
-let cfg = null;          // aktueller Stand von der Platine
+let cfg = null;          // aktueller Stand vom FlashStrike
 let writeTimer = null;
 let queue = Promise.resolve();   // BLE-Operationen nacheinander ausführen
 
